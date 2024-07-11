@@ -117,11 +117,13 @@ def Clickup():
         return {"date_from": date_from, "date_to": date_to}
 
     def call_api_get_tasks(space_id):
-        # date = init_date()
+        date = init_date()
         params = {
-            "page": 0,
-            # "date_updated_gt": date["date_from"],
-            # "date_updated_lt": date["date_to"]
+            "page": 0, 
+            "date_created_gt": date["date_from"],
+            "date_created_lt": date["date_to"],
+            "date_updated_gt": date["date_from"],
+            "date_updated_lt": date["date_to"]
         }
         name_url = 'CLICKUP_GET_TASKS'
         return call_api_mutiple_pages(headers=headers,params=params, name_url=name_url,url=CLICKUP_GET_TASKS,task_id=space_id)

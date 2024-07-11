@@ -11,7 +11,7 @@ from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.python import task
 from airflow.utils.dates import days_ago
-from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+# from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from common.utils import handle_df
 
 # Variables
@@ -212,12 +212,13 @@ def Jotform_Clickup():
     # task_check = check_tasks_clickup()
     task_create = create_order_clickup()
     delete_task = delete_tasks()
-    jotform_task = TriggerDagRunOperator(
-        task_id='Jotform_task',
-        trigger_dag_id='Jotform',  
-        wait_for_completion=True
-    )
-    jotform_task >> delete_task >> task_create
+    # jotform_task = TriggerDagRunOperator(
+    #     task_id='Jotform_task',
+    #     trigger_dag_id='Jotform',  
+    #     wait_for_completion=True
+    # )
+    # jotform_task >> delete_task >> task_create
+    delete_task >> task_create
 
 
 dag = Jotform_Clickup()

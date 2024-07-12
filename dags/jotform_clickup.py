@@ -9,7 +9,6 @@ import pandas as pd
 import requests
 from airflow.decorators import dag, task
 from airflow.models import Variable
-from airflow.operators.python import task
 from airflow.utils.dates import days_ago
 # from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from common.utils import handle_df
@@ -182,7 +181,7 @@ def Jotform_Clickup():
     @task
     def delete_tasks() -> None:
         df = call_tasks()
-        df_tasks = handle_df(df)
+        df_tasks = handle_df(df)    
         if df_tasks is not None:
             hook = mssql.MsSqlHook(HOOK_MSSQL)
             sql_conn = hook.get_conn()
@@ -192,6 +191,7 @@ def Jotform_Clickup():
 
             task_ids_to_delete = [df_tasks['id'][i] for i in range(
                 len(df_tasks)) if df_tasks['name'][i].split('|')[0] in df["id"].tolist()]
+            print(task_ids_to_delete)
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 executor.map(call_api_delete, task_ids_to_delete)
 

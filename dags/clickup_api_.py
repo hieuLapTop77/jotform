@@ -9,8 +9,6 @@ from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.python import task
 from airflow.utils.dates import days_ago
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import billiard as multiprocessing
 from common.utils import call_api_get_list, call_api_mutiple_pages, call_multiple_thread
 
 # Variables
@@ -46,7 +44,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 */2 * * *",
+    schedule_interval="0 * * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Clickup"],
@@ -112,7 +110,7 @@ def Clickup():
     def init_date() -> Dict[str, str]:
         current_time = datetime.now()
         date_to = int(current_time.timestamp()*1000)
-        time_minus_24_hours = current_time - timedelta(hours=24)
+        time_minus_24_hours = current_time - timedelta(hours=3)
         date_from = int(time_minus_24_hours.timestamp() * 1000)
         return {"date_from": date_from, "date_to": date_to}
 
@@ -155,12 +153,12 @@ def Clickup():
     
     @task
     def call_mutiple_process_task_details_0() -> list:
-        sql = "select distinct id from [3rd_clickup_tasks]"# where dtm_Creation_Date >= DATEADD(hour, -20, GETDATE()) order by dtm_Creation_Date desc;"
+        sql = "select id from [3rd_clickup_tasks] where dtm_Creation_Date >= DATEADD(hour, -3, GETDATE()) order by dtm_Creation_Date desc;"
         return call_multiple_thread(hook_sql=HOOK_MSSQL,sql=sql,function=call_api_get_task_details,function_name='call_api_get_task_details',range_from=0, range_to=5500)
     
     @task
     def call_mutiple_process_task_details_1() -> list:
-        sql = "select distinct id from [3rd_clickup_tasks]" #where dtm_Creation_Date >= DATEADD(hour, -20, GETDATE()) order by dtm_Creation_Date desc;"
+        sql = "select id from [3rd_clickup_tasks] where dtm_Creation_Date >= DATEADD(hour, -3, GETDATE()) order by dtm_Creation_Date desc;"
         return call_multiple_thread(hook_sql=HOOK_MSSQL,sql=sql,function=call_api_get_task_details,function_name='call_api_get_task_details',range_from=5500, range_to=None)
 
     def call_api_get_custom_fields(space_id):

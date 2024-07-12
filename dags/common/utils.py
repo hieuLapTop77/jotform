@@ -2,7 +2,7 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List
-
+from datetime import datetime, timedelta
 import airflow.providers.microsoft.mssql.hooks.mssql as mssql
 import billiard as multiprocessing
 import pandas as pd
@@ -17,7 +17,7 @@ URL_DRIVER_DOWNLOAD = Variable.get("url_driver_download")
 TEMP_PATH = Variable.get("temp_path")
 
 
-def download_file_drive(folder_name: str, folder_id: str) -> str:
+def download_file_lastest_drive(folder_name: str, folder_id: str) -> str:
     url = URL_DRIVER_REQUESTS.format(folder_id, API_KEY)
     response = requests.get(url)
 
@@ -41,6 +41,45 @@ def download_file_drive(folder_name: str, folder_id: str) -> str:
         f.write(download_response.content)
     print(f"Downloaded {file_name}")
     return file_local
+
+def download_file_drive(folder_name: str, folder_id: str) -> list:
+    url = URL_DRIVER_REQUESTS.format(folder_id, API_KEY)
+    response = requests.get(url)
+
+    response.raise_for_status()
+
+    files = response.json().get('files', [])
+
+    if not files:
+        print('No files found.')
+        return []
+    time_limit = datetime.utcnow() - timedelta(hours=6)
+    recent_files = [f for f in files if 'modifiedTime' in f and datetime.strptime(f['modifiedTime'], "%Y-%m-%dT%H:%M:%S.%fZ") > time_limit]
+
+    if not recent_files:
+        print('No files updated in the last 6 hours.')
+        return []
+
+    downloaded_files = []
+
+    for file in recent_files:
+        file_id = file['id']
+        file_name = file['name']
+
+        download_url = URL_DRIVER_DOWNLOAD.format(file_id, API_KEY)
+        download_response = requests.get(download_url)
+        download_response.raise_for_status()
+        
+        file_local = os.path.join(TEMP_PATH, folder_name, file_name)
+        os.makedirs(os.path.dirname(file_local), exist_ok=True)
+        
+        with open(file_local, 'wb') as f:
+            f.write(download_response.content)
+        
+        print(f"Downloaded {file_name}")
+        downloaded_files.append(file_local)
+
+    return downloaded_files
 
 
 def call_api_get_list(sql: str, hook_sql: str, url: str, headers=None, params=None) -> list:

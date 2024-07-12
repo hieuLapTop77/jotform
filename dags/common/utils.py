@@ -106,12 +106,14 @@ def call_api_get_list(sql: str, hook_sql: str, url: str, headers=None, params=No
 
 def call_api_mutiple_pages(headers, params, name_url: str, url: str, task_id):
     list_results = []
+    task_ids = task_id
+    print(f"Calling api {url.format(task_ids)} at page: ", params["page"])
     while True:
         print(
-            f"Calling api {name_url} for task_id {task_id} at page: ", params["page"])
-        print(f"Calling api {url.format(task_id)} at page: ", params["page"])
+            f"Calling api {name_url} for task_id {task_ids} at page: ", params["page"])
+        print(f"Calling api {url.format(task_ids)} at page: ", params["page"])
         response = requests.get(
-            url.format(task_id), headers=headers, params=params, timeout=None
+            url.format(task_ids), headers=headers, params=params, timeout=None
         )
         if response.status_code == 200:
             data = response.json()
@@ -120,7 +122,7 @@ def call_api_mutiple_pages(headers, params, name_url: str, url: str, task_id):
                 break
             params["page"] += 1
         else:
-            print("Error please check api: ", url.format(task_id))
+            print("Error please check api: ", url.format(task_ids))
             break
 
     return list_results

@@ -45,7 +45,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 * * * *",
+    schedule_interval="30 * * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Clickup"],

@@ -161,15 +161,20 @@ def Jotform():
         sql_conn = hook.get_conn()
         cursor = sql_conn.cursor()
         df = handle_df(df)
-        if df is not None:
-            print(tuple(df['id'].tolist()))
-            sql_del = f"delete from [dbo].[3rd_jotform_form_submissions] where id in {tuple(df['id'].tolist())};"
-            if ',)' in sql_del:
-                sql_del = sql_del.replace(',)', ')')
-            print(sql_del)
-            cursor.execute(sql_del)
-            sql_conn.commit()
-            values = []
+
+        sql = """select distinct id from [dbo].[3rd_jotform_form_submissions]"""
+        df_sql = pd.read_sql(sql, sql_conn)
+        df = df[~df['id'].isin(df_sql['id'])]
+        values = []
+        if not df.empty:
+            # print(tuple(df['id'].tolist()))
+            # sql_del = f"delete from [dbo].[3rd_jotform_form_submissions] where id in {tuple(df['id'].tolist())};"
+            # if ',)' in sql_del:
+            #     sql_del = sql_del.replace(',)', ')')
+            # print(sql_del)
+            # cursor.execute(sql_del)
+            # sql_conn.commit()
+
             df["answers"] = df["answers"].apply(lambda x: json.dumps(x))
             rows = []
             answers = []

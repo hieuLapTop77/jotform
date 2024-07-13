@@ -74,23 +74,26 @@ def Misa_ban_hang():
         if len(list_file_local) > 0:
             for file_local in list_file_local:
                 df = pd.read_excel(file_local, skiprows=2, index_col=None, engine='openpyxl', skipfooter=1)
-                sql_del = f"delete from [dbo].[3rd_misa_ban_hang] where Ngay_hach_toan >= '{df['Ngày hạch toán'].min()}' and Ngay_hach_toan <= '{df['Ngày hạch toán'].max()}';"
-                print(sql_del)
-                cursor.execute(sql_del)
+                # sql_del = f"delete from [dbo].[3rd_misa_ban_hang] where So_chung_tu >= '{df['Ngày hạch toán'].min()}' and Ngay_hach_toan <= '{df['Ngày hạch toán'].max()}';"
+                # print(sql_del)
+                # cursor.execute(sql_del)
+                sql_ban = """select So_chung_tu from [dbo].[3rd_misa_ban_hang]"""
+                df_sql = pd.read_sql(sql_ban, sql_conn)
+                df = df[~df['Số chứng từ'].isin(df_sql['So_chung_tu'])]
                 values = []
-                if len(df) > 0:
+                if not df.empty:
                     for _index, row in df.iterrows():
                         value = (
-                                    str(row[0]),
-                                    str(row[1]),
-                                    str(row[2]),
-                                    str(row[3]),
-                                    str(row[4]),
-                                    str(row[5]), 
-                                    str(row[6]),
-                                    str(row[7]),
-                                    str(row[8]),
-                                    str(row[9]),
+                                str(row[0]),
+                                str(row[1]),
+                                str(row[2]),
+                                str(row[3]),
+                                str(row[4]),
+                                str(row[5]), 
+                                str(row[6]),
+                                str(row[7]),
+                                str(row[8]),
+                                str(row[9]),
                         )
                         values.append(value)
                     cursor.executemany(sql, values)

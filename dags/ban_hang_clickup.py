@@ -161,6 +161,21 @@ def Banhang_Clickup():
         data = [item for sublist in filtered_data for item in sublist["tasks"]]
         return pd.DataFrame(data).to_json()
 
+    def update_misa(So_chung_tu: str):
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        cursor = sql_conn.cursor()
+        sql_update = f"""
+                update [dbo].[3rd_misa_ban_hang]
+                set status_clickup = 'true'
+                where So_chung_tu = '{So_chung_tu}'
+                """
+        print(sql_update)
+        cursor.execute(sql_update)
+        sql_conn.commit()
+        print(f"updated misa ban hang id: {So_chung_tu} successfully")
+        sql_conn.close()
+
     def create_task_payload(df_row, is_child=False, parent_id=None):
         body = copy.deepcopy(BODY_TEMPLATE)
         body['name'] = (
@@ -216,6 +231,7 @@ def Banhang_Clickup():
             task_id = res.json()['id']
             print(f"Created parent task: {task_id}")
             so_chung_tu = df_row['So_chung_tu']
+            update_misa(so_chung_tu)
             hook = mssql.MsSqlHook(HOOK_MSSQL)
             sql_conn = hook.get_conn()
             sql = f"""select * from data_ban_hang where So_chung_tu = '{so_chung_tu}'"""
@@ -261,7 +277,7 @@ def Banhang_Clickup():
     def create_order_clickup():
         hook = mssql.MsSqlHook(HOOK_MSSQL)
         sql_conn = hook.get_conn()
-        sql = """select * from [3rd_misa_ban_hang]"""
+        sql = """select * from [3rd_misa_ban_hang] where status_clickup = 'false'; """
         df = pd.read_sql(sql, sql_conn)
         df["MaHang"] = None
         df['SoLuongBan'] = None
@@ -275,9 +291,10 @@ def Banhang_Clickup():
 
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
-    task_create = create_order_clickup()
-    delete_task = delete_tasks()
-    delete_task >> task_create
+    # delete_tasks() 
+    create_order_clickup()
+    # delete_task = delete_tasks()
+    # delete_task >> task_create
 
 
 dag = Banhang_Clickup()

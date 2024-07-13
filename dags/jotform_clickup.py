@@ -165,6 +165,23 @@ def Jotform_Clickup():
                 else:
                     break
 
+            update_jotform(df_row['id'])
+
+
+    def update_jotform(id):
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        cursor = sql_conn.cursor()
+        sql_update = f"""
+                update [dbo].[3rd_jotform_form_submissions]
+                set status_clickup = 'true'
+                where id = '{id}'
+                """
+        print(sql_update)
+        cursor.execute(sql_update)
+        sql_conn.commit()
+        print(f"updated id: {id} successfully")
+
     @task
     def check_tasks_clickup() -> None:
         hook = mssql.MsSqlHook(HOOK_MSSQL)
@@ -210,15 +227,15 @@ def Jotform_Clickup():
 
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
-    task_create = create_order_clickup()
-    delete_task = delete_tasks()
+    create_order_clickup()
+    # delete_task = delete_tasks()
     # jotform_task = TriggerDagRunOperator(
     #     task_id='Jotform_task',
     #     trigger_dag_id='Jotform',  
     #     wait_for_completion=True
     # )
     # jotform_task >> delete_task >> task_create
-    delete_task >> task_create
+    # delete_task >> task_create
 
 
 dag = Jotform_Clickup()

@@ -28,7 +28,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 * * * *",
+    schedule_interval="0 */12 * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Misa", "khach hang"],
@@ -70,9 +70,8 @@ def Misa_khach_hang():
                         ,[Code_vi_tri]
                         ,[Nhan_vien_kinh_doanh]
                         ,[Don_vi_phu_trach]
-                        ,[Nhom_nho]
                         ,[dtm_creation_date])
-                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, getdate())
+                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, getdate())
                 """
         if len(list_file_local) > 0:
             for file_local in list_file_local:
@@ -86,6 +85,7 @@ def Misa_khach_hang():
                     print(sql_del)
                     cursor.execute(sql_del)
                 values = []
+                print(df.columns.tolist())
                 if len(df) > 0:
                     for _index, row in df.iterrows():
                         value = (
@@ -99,10 +99,10 @@ def Misa_khach_hang():
                                     str(row[7]),
                                     str(row[8]),
                                     str(row[9]),
-                                    str(row[10]),
-                                    str(row[11])
+                                    str(row[10])
                         )
                         values.append(value)
+                    print(values[0])
                     cursor.executemany(sql, values)
 
                 print(f"Inserted {len(values)} rows in database with {df.shape[0]} rows")

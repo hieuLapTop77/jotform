@@ -27,7 +27,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 * * * *",
+    schedule_interval="0 */12 * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Misa", "ban hang"],

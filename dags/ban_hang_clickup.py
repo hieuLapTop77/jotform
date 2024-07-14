@@ -103,6 +103,11 @@ BODY_TEMPLATE = {
             "id": "1dd93b23-700a-41b1-88f8-bbb027c311df",
             "name": "Tổng tiền thanh toán",
             "value": None
+        },
+        {
+            "id": "890ff1aa-40c1-4a58-ab3d-4ccf240fa77c",
+            "name": "Diễn giải",
+            "value": None
         }
     ],
     "attachments": [],
@@ -157,7 +162,6 @@ def Banhang_Clickup():
     def call_mutiple_thread_tasks():
         list_tasks: list = call_api_get_tasks(901802479598)
         filtered_data = [item for item in list_tasks if not (isinstance(item, list) and len(item) > 0 and isinstance(item[0], dict) and item[0].get('tasks') == [] and item[0].get('last_page'))]
-        # data = [item for sublist in filtered_data for t in sublist for item in t["tasks"]]
         data = [item for sublist in filtered_data for item in sublist["tasks"]]
         return pd.DataFrame(data).to_json()
 
@@ -221,6 +225,20 @@ def Banhang_Clickup():
 
             elif field["id"] == "1dd93b23-700a-41b1-88f8-bbb027c311df": #"Tổng tiền thanh toán"
                 field["value"] = df_row['Tong_tien_thanh_toan'] if df_row['Tong_tien_thanh_toan'] is not None else None
+
+            elif field["id"] == "890ff1aa-40c1-4a58-ab3d-4ccf240fa77c": #"Diễn giải"
+                field["value"] = df_row['DienGiaiChung'] if df_row['DienGiaiChung'] is not None else None
+
+            # elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and not is_child: 
+            #     field["value"] = 0
+            
+            # elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and is_child: 
+            #     field["value"] = 1
+
+            # elif field["id"] == "bbbbc74f-57d2-4f2a-a2a4-5a00afb6d427": 
+            #     field["value"] = df_row['Ten_SP']          
+            
+
         return json.loads(json.dumps(body, ensure_ascii=False))
 
     def create_chitietbanhang_clickup_task(df_row):
@@ -283,6 +301,7 @@ def Banhang_Clickup():
         df['SoLuongBan'] = None
         df['TenNhanVienBanHang'] = None
         df['TongThanhToanNT'] = None
+        df['DienGiaiChung'] = None
         sql_conn.close()
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -291,8 +310,8 @@ def Banhang_Clickup():
 
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
-    # delete_tasks() 
-    create_order_clickup()
+    # delete_tasks() >> create_order_clickup() 
+    create_order_clickup()  
     # delete_task = delete_tasks()
     # delete_task >> task_create
 

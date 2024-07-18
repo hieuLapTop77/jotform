@@ -32,7 +32,7 @@ BODY_TEMPLATE = {
     "name": "Đơn hàng (mã đơn hàng)",
     "text_content": "",
     "description": "",
-    "status": "to do",
+    "status": "cần giao",
     "date_created": "",
     "date_updated": None,
     "date_closed": None,
@@ -74,21 +74,21 @@ BODY_TEMPLATE = {
             "name": "Số lượng",
             "value": None
         },
-        {
-            "id": "3625c536-9ff5-4aec-8972-0550d92b5315",
-            "name": "TT Lập hóa đơn",
-            "value": None
-        },
-        {
-            "id": "3bcd3129-efd6-41b6-b1bc-30cafcaf1c59",
-            "name": "TT Thanh toán",
-            "value": None
-        },
-        {
-            "id": "00be66a6-a6f7-464d-9ab6-513f9abfb2f4",
-            "name": "TT Xuất hàng",
-            "value": None
-        },
+        # {
+        #     "id": "3625c536-9ff5-4aec-8972-0550d92b5315",
+        #     "name": "TT Lập hóa đơn",
+        #     "value": None
+        # },
+        # {
+        #     "id": "3bcd3129-efd6-41b6-b1bc-30cafcaf1c59",
+        #     "name": "TT Thanh toán",
+        #     "value": None
+        # },
+        # {
+        #     "id": "00be66a6-a6f7-464d-9ab6-513f9abfb2f4",
+        #     "name": "TT Xuất hàng",
+        #     "value": None
+        # },
         {
             "id": "16e8ce7f-6ad3-4013-9462-22b8aaf5e70e",
             "name": "Tên nhân viên bán hàng",
@@ -107,6 +107,51 @@ BODY_TEMPLATE = {
         {
             "id": "890ff1aa-40c1-4a58-ab3d-4ccf240fa77c",
             "name": "Diễn giải",
+            "value": None
+        },
+        {
+            "id": "ea6dc2f1-f35e-48ef-802b-f99d6fa9c546",
+            "name": "Chiết khấu",
+            "value": None
+        },
+        {
+            "id": "9e2c4b36-cd4e-442e-a82c-ebd35e74a6a6",
+            "name": "Giá trị trả lại",
+            "value": None
+        },
+        {
+            "id": "eb20eefa-8bf0-40f4-adf1-37a11bac25cd",
+            "name": "Loại dữ liệu",
+            "value": None
+        },
+        {
+            "id": "4ca5bb89-97dc-426a-8a23-d85017576d06",
+            "name": "Tổng số lượng trả lại",
+            "value": None
+        },
+        {
+            "id": "438c5839-7a80-4e92-9cda-61652672be30",
+            "name": "Nhân Viên Kinh Doanh",
+            "value": None
+        },
+        {
+            "id": "24dd568f-bf21-4166-8be0-32effc22dc4c",
+            "name": "Tên kênh phân phối",
+            "value": None
+        },
+        {
+            "id": "bbbbc74f-57d2-4f2a-a2a4-5a00afb6d427",
+            "name": "Tên sản phẩm",
+            "value": None
+        },
+        {
+            "id": "40c4e8d2-7ea2-4d3a-9ecf-6ed491ea19c8",
+            "name": "Đơn vị phụ trách",
+            "value": None
+        },
+        {
+            "id": "776b2498-e134-4c3f-aa56-95ffa4ab2e73",
+            "name": "Địa điểm chính xác",
             "value": None
         }
     ],
@@ -147,13 +192,13 @@ def Banhang_Clickup():
         return {"date_from": date_from, "date_to": date_to}
         
     def call_api_get_tasks(list_id):
-        date = init_date()
+        # date = init_date()
         params = {
             "page": 0, 
-            "date_created_gt": date["date_from"],
-            "date_created_lt": date["date_to"],
-            "date_updated_gt": date["date_from"],
-            "date_updated_lt": date["date_to"]
+            # "date_created_gt": date["date_from"],
+            # "date_created_lt": date["date_to"],
+            # "date_updated_gt": date["date_from"],
+            # "date_updated_lt": date["date_to"]
         }
         name_url = 'CLICKUP_GET_TASKS'
         print(list_id)
@@ -182,9 +227,7 @@ def Banhang_Clickup():
 
     def create_task_payload(df_row, is_child=False, parent_id=None):
         body = copy.deepcopy(BODY_TEMPLATE)
-        body['name'] = (
-            "Đơn hàng (mã đơn hàng)"
-        )
+        body['name'] = df_row['So_chung_tu']
         body['date_created'] = int(datetime.now().timestamp() * 1000)
         if is_child:
             body['parent'] = parent_id
@@ -208,14 +251,14 @@ def Banhang_Clickup():
             elif field["id"] == "cd3ec20a-9461-4543-bb05-c97854932714": #"Số lượng"
                 field["value"] = df_row['SoLuongBan']  if df_row['SoLuongBan'] is not None else None
             
-            elif field["id"] == "3625c536-9ff5-4aec-8972-0550d92b5315": #"TT Lập hóa đơn"
-                field["value"] = df_row['TT_lap_hoa_don'] if df_row['TT_lap_hoa_don'] is not None else None
+            # elif field["id"] == "3625c536-9ff5-4aec-8972-0550d92b5315": #"TT Lập hóa đơn"
+            #     field["value"] = df_row['TT_lap_hoa_don'] if df_row['TT_lap_hoa_don'] is not None else None
 
-            elif field["id"] == "3bcd3129-efd6-41b6-b1bc-30cafcaf1c59": #"TT Thanh toán"
-                field["value"] = df_row['TT_thanh_toan'] if df_row['TT_thanh_toan'] is not None else None
+            # elif field["id"] == "3bcd3129-efd6-41b6-b1bc-30cafcaf1c59": #"TT Thanh toán"
+            #     field["value"] = df_row['TT_thanh_toan'] if df_row['TT_thanh_toan'] is not None else None
             
-            elif field["id"] == "00be66a6-a6f7-464d-9ab6-513f9abfb2f4": #"TT xuất hàng"
-                field["value"] = df_row['TT_xuat_hang'] if df_row['TT_xuat_hang'] is not None else None
+            # elif field["id"] == "00be66a6-a6f7-464d-9ab6-513f9abfb2f4": #"TT xuất hàng"
+            #     field["value"] = df_row['TT_xuat_hang'] if df_row['TT_xuat_hang'] is not None else None
 
             elif field["id"] == "16e8ce7f-6ad3-4013-9462-22b8aaf5e70e": #"Tên nhân viên bán hàng"
                 field["value"] = df_row['TenNhanVienBanHang'] if df_row['TenNhanVienBanHang'] is not None else None
@@ -229,15 +272,35 @@ def Banhang_Clickup():
             elif field["id"] == "890ff1aa-40c1-4a58-ab3d-4ccf240fa77c": #"Diễn giải"
                 field["value"] = df_row['DienGiaiChung'] if df_row['DienGiaiChung'] is not None else None
 
-            # elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and not is_child: 
-            #     field["value"] = 0
+            elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and not is_child: 
+                field["value"] = 0
             
-            # elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and is_child: 
-            #     field["value"] = 1
+            elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and is_child: 
+                field["value"] = 1
 
-            # elif field["id"] == "bbbbc74f-57d2-4f2a-a2a4-5a00afb6d427": 
-            #     field["value"] = df_row['Ten_SP']          
+            elif field["id"] == "bbbbc74f-57d2-4f2a-a2a4-5a00afb6d427" and  is_child: 
+                field["value"] = df_row['Ten_SP']   
+                   
+            elif field["id"] == "ea6dc2f1-f35e-48ef-802b-f99d6fa9c546" and is_child: # "Chiết khấu"
+                field["value"] = df_row['ChietKhau'] 
             
+            elif field["id"] == "9e2c4b36-cd4e-442e-a82c-ebd35e74a6a6" and is_child: # "Giá trị trả lại"
+                field["value"] = df_row['GiaTriTraLai'] 
+
+            elif field["id"] == "4ca5bb89-97dc-426a-8a23-d85017576d06" and is_child: # "Tổng số lượng trả lại"
+                field["value"] = df_row['TongSoLuongTraLai'] 
+
+            elif field["id"] == "438c5839-7a80-4e92-9cda-61652672be30" and is_child:  #"Nhân Viên Kinh Doanh"
+                field["value"] = df_row['Nhan_vien_kinh_doanh']
+
+            elif field["id"] == "24dd568f-bf21-4166-8be0-32effc22dc4c" and is_child:  #"Tên kênh phân phối"
+                field["value"] = df_row['Ten_kenh_phan_phoi']  
+
+            elif field["id"] == "40c4e8d2-7ea2-4d3a-9ecf-6ed491ea19c8" and is_child: #"Đơn vị phụ trách"
+                field["value"] = df_row['orderindex'] if df_row['orderindex'] is not None else None
+            
+            elif field["id"] == "776b2498-e134-4c3f-aa56-95ffa4ab2e73":  #"Địa điểm chính xác"
+                field["value"] = df_row['Dia_chi']
 
         return json.loads(json.dumps(body, ensure_ascii=False))
 
@@ -262,10 +325,9 @@ def Banhang_Clickup():
                     ID_LIST_DEFAULT), json=child_task_payload, headers=HEADERS)
                 print(res.status_code)
                 if res.status_code == 200:
-                    print(
-                        f"Created child task for product ")
+                    print(f"Created child task for product: {row['Ten_SP']} under parent task: {task_id}")
                 else:
-                    print(f"Failed to create child task for product ")
+                    print(f"Failed to create child task for product: {row['Ten_SP']}")
 
     def extract_so_chung_tu(custom_fields):
         for custom_field in custom_fields:
@@ -276,20 +338,21 @@ def Banhang_Clickup():
     @task
     def delete_tasks() -> None:
         df_tasks = call_mutiple_thread_tasks()
-        df_tasks = handle_df(df_tasks) 
+        df_tasks = handle_df(df_tasks)
+        if df_tasks.empty:
+            return
         df_tasks['so_chung_tu'] = df_tasks['custom_fields'].apply(extract_so_chung_tu)   
-        if df_tasks is not None:
-            hook = mssql.MsSqlHook(HOOK_MSSQL)
-            sql_conn = hook.get_conn()
-            sql = """select So_chung_tu from [dbo].[3rd_misa_ban_hang] """
-            df = pd.read_sql(sql, sql_conn)
-            sql_conn.close()
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        sql = """select So_chung_tu from [dbo].[3rd_misa_ban_hang] """
+        df = pd.read_sql(sql, sql_conn)
+        sql_conn.close()
 
-            task_ids_to_delete = [df_tasks['id'][i] for i in range(
-                len(df_tasks)) if df_tasks['so_chung_tu'][i] in df["So_chung_tu"].tolist()]
-            print(task_ids_to_delete)
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(call_api_delete, task_ids_to_delete)
+        task_ids_to_delete = [df_tasks['id'][i] for i in range(
+            len(df_tasks)) if df_tasks['so_chung_tu'][i] in df["So_chung_tu"].tolist()]
+        print(task_ids_to_delete)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(call_api_delete, task_ids_to_delete)
 
     @task
     def create_order_clickup():
@@ -298,10 +361,19 @@ def Banhang_Clickup():
         sql = """select * from [3rd_misa_ban_hang] where status_clickup = 'false'; """
         df = pd.read_sql(sql, sql_conn)
         df["MaHang"] = None
+        df["Ten_SP"] = None
         df['SoLuongBan'] = None
         df['TenNhanVienBanHang'] = None
         df['TongThanhToanNT'] = None
         df['DienGiaiChung'] = None
+        df['ChietKhau'] = None
+        df['TongSoLuongTraLai'] = None
+        df['GiaTriTraLai'] = None
+        df['Ten_kenh_phan_phoi'] = None
+        df['Don_vi_phu_trach'] = None
+        df['Nhan_vien_kinh_doanh'] = None
+        df['orderindex'] = None
+        #df["Dia_chi"] = None
         sql_conn.close()
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -310,9 +382,9 @@ def Banhang_Clickup():
 
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
-    # delete_tasks() >> create_order_clickup() 
-    create_order_clickup()  
-    # delete_task = delete_tasks()
+    delete_tasks() >> create_order_clickup() 
+    # create_order_clickup()  
+    # delete_tasks()
     # delete_task >> task_create
 
 

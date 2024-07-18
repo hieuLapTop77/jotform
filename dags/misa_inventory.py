@@ -80,14 +80,17 @@ def Misa_inventory():
                 """
         if len(list_file_local) > 0:
             for file_local in list_file_local:
+                print("Insert file: ", file_local.split("/")[-1])
                 df = pd.read_excel(file_local, skiprows=3, index_col=None,
                                 engine='openpyxl', skipfooter=1, header=[0, 1])
-                # sql_del = f"delete from [dbo].[3rd_misa_inventory] where [Ma_hang] in {tuple(df['Mã hàng']['Unnamed: 1_level_1'].tolist())};"
-                # print(sql_del)
-                # cursor.execute(sql_del)
+                sql_del = "truncate table from [dbo].[3rd_misa_inventory] "
+                print(sql_del)
+                cursor.execute(sql_del)
                 values = []
                 if len(df) > 0:
                     for _index, row in df.iterrows():
+                        if 'nan' in str(row[1]): 
+                            break
                         value = (
                             str(row[0]),
                             str(row[1]),
@@ -104,7 +107,6 @@ def Misa_inventory():
                         )
                         values.append(value)
                     cursor.executemany(sql, values)
-
                 print(
                     f"Inserted {len(values)} rows in database with {df.shape[0]} rows")
                 sql_conn.commit()

@@ -231,13 +231,13 @@ def Banhang_Clickup():
         body['date_created'] = int(datetime.now().timestamp() * 1000)
         if is_child:
             body['parent'] = parent_id
-            body['name'] = df_row['Ten_SP']
+            body['name'] = df_row['Ten_hang']
         for field in body["custom_fields"]:
             if field["id"] == "9abf18d5-d6df-47ca-83df-3ab88f29f9e6": #"Khách hàng"
                 field["value"] = df_row['Khach_hang'] if df_row['Khach_hang'] is not None else None
 
             elif field["id"] == "5c52dc4f-a8d9-4b5f-bbb2-3eb7e9fa36a1": #"Mã hàng"
-                field["value"] = df_row['MaHang'] if df_row['MaHang'] is not None else None
+                field["value"] = df_row['Ma_Hang'] if df_row['Ma_Hang'] is not None else None
 
             elif field["id"] ==  "b60989ab-2d22-433d-a5e5-8b7d3491f2ea": # "Ngày hạch toán"
                 if df_row['Ngay_hach_toan'] is not None:
@@ -249,7 +249,7 @@ def Banhang_Clickup():
                 field["value"] = df_row['So_chung_tu'] if df_row['So_chung_tu'] is not None else None
 
             elif field["id"] == "cd3ec20a-9461-4543-bb05-c97854932714": #"Số lượng"
-                field["value"] = df_row['SoLuongBan']  if df_row['SoLuongBan'] is not None else None
+                field["value"] = df_row['So_Luong_Ban']  if df_row['So_Luong_Ban'] is not None else None
             
             # elif field["id"] == "3625c536-9ff5-4aec-8972-0550d92b5315": #"TT Lập hóa đơn"
             #     field["value"] = df_row['TT_lap_hoa_don'] if df_row['TT_lap_hoa_don'] is not None else None
@@ -261,16 +261,16 @@ def Banhang_Clickup():
             #     field["value"] = df_row['TT_xuat_hang'] if df_row['TT_xuat_hang'] is not None else None
 
             elif field["id"] == "16e8ce7f-6ad3-4013-9462-22b8aaf5e70e": #"Tên nhân viên bán hàng"
-                field["value"] = df_row['TenNhanVienBanHang'] if df_row['TenNhanVienBanHang'] is not None else None
+                field["value"] = df_row['Ten_Nhan_Vien_Ban_Hang'] if df_row['Ten_Nhan_Vien_Ban_Hang'] is not None else None
 
             elif field["id"] == "26866878-a950-4210-a069-66bd95b24530": #"Tổng thanh toán NT"
-                field["value"] = df_row['TongThanhToanNT'] if df_row['TongThanhToanNT'] is not None else None
+                field["value"] = df_row['Tong_Thanh_Toan_NT'] if df_row['Tong_Thanh_Toan_NT'] is not None else None
 
             elif field["id"] == "1dd93b23-700a-41b1-88f8-bbb027c311df": #"Tổng tiền thanh toán"
                 field["value"] = df_row['Tong_tien_thanh_toan'] if df_row['Tong_tien_thanh_toan'] is not None else None
 
             elif field["id"] == "890ff1aa-40c1-4a58-ab3d-4ccf240fa77c": #"Diễn giải"
-                field["value"] = df_row['DienGiaiChung'] if df_row['DienGiaiChung'] is not None else None
+                field["value"] = df_row['Dien_Giai_Chung'] if df_row['Dien_Giai_Chung'] is not None else None
 
             elif field["id"] == "eb20eefa-8bf0-40f4-adf1-37a11bac25cd" and not is_child: 
                 field["value"] = 0
@@ -279,16 +279,16 @@ def Banhang_Clickup():
                 field["value"] = 1
 
             elif field["id"] == "bbbbc74f-57d2-4f2a-a2a4-5a00afb6d427" and  is_child: 
-                field["value"] = df_row['Ten_SP']   
+                field["value"] = df_row['Ten_hang']   
                    
             elif field["id"] == "ea6dc2f1-f35e-48ef-802b-f99d6fa9c546" and is_child: # "Chiết khấu"
-                field["value"] = df_row['ChietKhau'] 
+                field["value"] = df_row['Chiet_Khau'] 
             
             elif field["id"] == "9e2c4b36-cd4e-442e-a82c-ebd35e74a6a6" and is_child: # "Giá trị trả lại"
-                field["value"] = df_row['GiaTriTraLai'] 
+                field["value"] = df_row['Gia_Tri_Tra_Lai'] 
 
             elif field["id"] == "4ca5bb89-97dc-426a-8a23-d85017576d06" and is_child: # "Tổng số lượng trả lại"
-                field["value"] = df_row['TongSoLuongTraLai'] 
+                field["value"] = df_row['Tong_So_Luong_Tra_Lai'] 
 
             elif field["id"] == "438c5839-7a80-4e92-9cda-61652672be30" and is_child:  #"Nhân Viên Kinh Doanh"
                 field["value"] = df_row['Nhan_vien_kinh_doanh']
@@ -325,9 +325,9 @@ def Banhang_Clickup():
                     ID_LIST_DEFAULT), json=child_task_payload, headers=HEADERS)
                 print(res.status_code)
                 if res.status_code == 200:
-                    print(f"Created child task for product: {row['Ten_SP']} under parent task: {task_id}")
+                    print(f"Created child task for product: {row['Ten_hang']} under parent task: {task_id}")
                 else:
-                    print(f"Failed to create child task for product: {row['Ten_SP']}")
+                    print(f"Failed to create child task for product: {row['Ten_hang']}")
 
     def extract_so_chung_tu(custom_fields):
         for custom_field in custom_fields:
@@ -360,15 +360,15 @@ def Banhang_Clickup():
         sql_conn = hook.get_conn()
         sql = """select * from [3rd_misa_ban_hang] where status_clickup = 'false'; """
         df = pd.read_sql(sql, sql_conn)
-        df["MaHang"] = None
-        df["Ten_SP"] = None
-        df['SoLuongBan'] = None
-        df['TenNhanVienBanHang'] = None
-        df['TongThanhToanNT'] = None
-        df['DienGiaiChung'] = None
-        df['ChietKhau'] = None
-        df['TongSoLuongTraLai'] = None
-        df['GiaTriTraLai'] = None
+        df["Ma_Hang"] = None
+        df["Ten_hang"] = None
+        df['So_Luong_Ban'] = None
+        df['Ten_Nhan_Vien_Ban_Hang'] = None
+        df['Tong_Thanh_Toan_NT'] = None
+        df['Dien_Giai_Chung'] = None
+        df['Chiet_Khau'] = None
+        df['Tong_So_Luong_Tra_Lai'] = None
+        df['Gia_Tri_Tra_Lai'] = None
         df['Ten_kenh_phan_phoi'] = None
         df['Don_vi_phu_trach'] = None
         df['Nhan_vien_kinh_doanh'] = None
@@ -382,9 +382,9 @@ def Banhang_Clickup():
 
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
-    delete_tasks() >> create_order_clickup() 
+    # delete_tasks() >> create_order_clickup() 
     # create_order_clickup()  
-    # delete_tasks()
+    delete_tasks()
     # delete_task >> task_create
 
 

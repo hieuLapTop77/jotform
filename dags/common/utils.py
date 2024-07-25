@@ -53,7 +53,7 @@ def download_file_drive(folder_name: str, folder_id: str) -> list:
     if not files:
         print('No files found.')
         return []
-    time_limit = datetime.utcnow() - timedelta(hours=6)
+    time_limit = datetime.utcnow() - timedelta(hours=30)
     recent_files = [f for f in files if 'modifiedTime' in f and datetime.strptime(f['modifiedTime'], "%Y-%m-%dT%H:%M:%S.%fZ") > time_limit]
 
     if not recent_files:

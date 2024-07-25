@@ -7,6 +7,7 @@ from airflow.operators.python import task
 from airflow.utils.dates import days_ago
 import glob
 from common.utils import download_file_drive
+import chardet
 # Variables
 
 ## Local path
@@ -27,7 +28,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 */12 * * *",
+    schedule_interval="0 */4 * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Misa", "sales details"],
@@ -49,16 +50,13 @@ def Misa_sales_details():
     def download_latest_file() -> list:
         folder_id = Variable.get("folder_id_sochitietbanhang")
         return download_file_drive(folder_name=FOLDER_NAME, folder_id=folder_id)
-    
-    def find_row(file_path: str):
-        temp_df = pd.read_excel(file_path, index_col=None, engine='openpyxl')
-        header_row = None
-        for i, row in temp_df.iterrows():
-            if row.astype(str).str.contains("Ngày hạch toán").any():
-                print(row)
-                header_row = i
-                break
-        return header_row
+
+    def find_header_row(file_path):
+        for i in range(10):
+            df = pd.read_excel(file_path, header=i, engine="openpyxl")
+            if 'Số chứng từ' in df.columns:
+                return i
+        return 0
     ######################################### INSERT DATA ################################################
     @task
     def insert_sales_details(list_file_local: list) -> None:
@@ -120,15 +118,15 @@ def Misa_sales_details():
                 'Tên kho']
         if len(list_file_local) > 0:
             for file_local in list_file_local:
-                header_row = None
+                print("Insert data of file name: ", file_local.split("/")[-1])
                 try:
-                    header_row = find_row(file_local)
-                except Exception as e: 
+                    header_row = find_header_row(file_local)
+                except Exception as e:
                     print("Error at: ", e)
-                    header_row = 1
+                    header_row = 3
                 print("header_row: ", header_row)
                 if header_row is not None:
-                    df = pd.read_excel(file_local, skiprows=header_row + 1, index_col=None, engine='openpyxl', skipfooter=1)
+                    df = pd.read_excel(file_local, skiprows=header_row, index_col=None, engine='openpyxl', skipfooter=1)
                     if len(df) > 1000: 
                         my_list = df['Số chứng từ'].tolist()
                         size = 1000

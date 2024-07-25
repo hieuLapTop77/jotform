@@ -2,7 +2,6 @@ import json
 
 import airflow.providers.microsoft.mssql.hooks.mssql as mssql
 import pandas as pd
-import requests
 from datetime import datetime, timedelta
 from typing import Dict
 from airflow.decorators import dag, task
@@ -122,7 +121,7 @@ def Clickup_Space_Ban_hang():
     
     @task
     def call_mutiple_process_task_details() -> list:
-        sql = "select id from [3rd_clickup_tasks] where dtm_Creation_Date >= DATEADD(hour, -3, GETDATE()) and json_value(space, '$.id') = '{ID_CLICKUP_SPACE_BAN_HANG}' order by dtm_Creation_Date desc;"
+        sql = f"select id from [3rd_clickup_tasks] where dtm_Creation_Date >= DATEADD(hour, -3, GETDATE()) and json_value(space, '$.id') = '{ID_CLICKUP_SPACE_BAN_HANG}' order by dtm_Creation_Date desc;"
         return call_multiple_thread(hook_sql=HOOK_MSSQL,sql=sql,function=call_api_get_task_details,function_name='call_api_get_task_details')
     
     def call_api_get_custom_fields(space_id):
@@ -134,7 +133,8 @@ def Clickup_Space_Ban_hang():
     
     @task
     def call_mutiple_process_custom_fields() -> list:
-        sql = "select distinct id from [3rd_clickup_space_details] where json_value(space, '$.id') = '{ID_CLICKUP_SPACE_BAN_HANG}';"
+        sql = f"select distinct id from [dbo].[3rd_clickup_lists] where json_value(space, '$.id') = '{ID_CLICKUP_SPACE_BAN_HANG}';"
+        print(sql)
         return call_multiple_thread(hook_sql=HOOK_MSSQL,sql=sql,function=call_api_get_custom_fields,function_name='call_api_get_custom_fields')
 
     ######################################### INSERT DATA ################################################

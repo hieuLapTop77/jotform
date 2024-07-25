@@ -315,7 +315,7 @@ def Banhang_Clickup():
             update_misa(so_chung_tu)
             hook = mssql.MsSqlHook(HOOK_MSSQL)
             sql_conn = hook.get_conn()
-            sql = f"""select * from data_ban_hang where So_chung_tu = '{so_chung_tu}'"""
+            sql = f"""select * from Misa_data_ban_hang where So_chung_tu = '{so_chung_tu}'"""
             df = pd.read_sql(sql, sql_conn)
 
             for _, row in df.iterrows():
@@ -383,8 +383,8 @@ def Banhang_Clickup():
     ############ DAG FLOW ############
     # task_check = check_tasks_clickup()
     # delete_tasks() >> create_order_clickup() 
-    # create_order_clickup()  
-    delete_tasks()
+    create_order_clickup()  
+    # delete_tasks()
     # delete_task >> task_create
 
 

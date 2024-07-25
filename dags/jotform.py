@@ -21,8 +21,11 @@ from common.utils import handle_df
 
 JOTFORM_GET_USER_FORMS = Variable.get("jotform_get_user_forms")
 JOTFORM_GET_USER_SUBMISSIONS = Variable.get("jotform_get_user_submissions")
+JOTFORM_GET_FORM_SUBMISSIONS_BY_ID = Variable.get("jotform_get_form_submissions_by_id")
 JOTFORM_GET_FORM_BY_ID_QUESTIONS = Variable.get(
     "jotform_get_form_by_id_questions")
+
+ID_JOTFORM_SUBMISSION = Variable.get("id_jotform_submission")
 
 # JOTFORM_GET_FORM_BY_ID = Variable.get("jotform_get_form_by_id")
 # JOTFORM_GET_FORM_BY_ID_QUESTIONS_BY_QID = Variable.get("jotform_get_form_by_id_questions_by_qid")
@@ -90,7 +93,7 @@ def Jotform():
             "limit": 1000
         }
         response = requests.get(
-            JOTFORM_GET_USER_SUBMISSIONS, params=params, timeout=None
+            JOTFORM_GET_FORM_SUBMISSIONS_BY_ID.format(ID_JOTFORM_SUBMISSION), params=params, timeout=None
         )
         if response.status_code == 200:
             df = pd.DataFrame(response.json()['content'])

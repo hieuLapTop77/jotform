@@ -27,7 +27,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 */12 * * *",
+    schedule_interval="0 */4 * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Misa", "group product"],
@@ -59,8 +59,7 @@ def Misa_group_products():
         if len(list_local_file) > 0:
             for local_file in list_local_file:
                 df = pd.read_excel(local_file, index_col=None, engine='openpyxl')
-                print(df.columns)
-                sql_del = f"delete from [dbo].[3rd_misa_group_products] where [ma_hang] in {tuple([str(i) for i in df['MÃ HÀNG HOÁ'].tolist()])};"
+                sql_del = f"delete from [dbo].[3rd_misa_group_products] where [ma_hang] in {tuple([str(i) for i in df.iloc[:, 0].tolist()])};"
                 print(sql_del)
                 cursor.execute(sql_del)
                 values = []
@@ -75,6 +74,8 @@ def Misa_group_products():
                             VALUES(%s, %s, %s, %s, getdate())
                         """
                     for _index, row in df.iterrows():
+                        if 'nan' in str(row[0]): 
+                            break
                         value = (
                                     str(row[0]),
                                     str(row[1]),

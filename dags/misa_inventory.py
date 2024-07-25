@@ -30,7 +30,7 @@ default_args = {
 
 @dag(
     default_args=default_args,
-    schedule_interval="0 */12 * * *",
+    schedule_interval="0 */4 * * *",
     start_date=days_ago(1),
     catchup=False,
     tags=["Misa", "inventory", "warehouse"],
@@ -83,7 +83,7 @@ def Misa_inventory():
                 print("Insert file: ", file_local.split("/")[-1])
                 df = pd.read_excel(file_local, skiprows=3, index_col=None,
                                 engine='openpyxl', skipfooter=1, header=[0, 1])
-                sql_del = "truncate table from [dbo].[3rd_misa_inventory] "
+                sql_del = "truncate table [dbo].[3rd_misa_inventory] "
                 print(sql_del)
                 cursor.execute(sql_del)
                 values = []

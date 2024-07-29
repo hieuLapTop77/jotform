@@ -10,7 +10,7 @@ from airflow.utils.dates import days_ago
 from common.utils import call_api_mutiple_pages, call_multiple_thread
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 import concurrent.futures
-from common.utils_nikko import download_single_file, update_clickup_task_gmail, insert_tasks, init_date
+from common.utils_nikko import download_single_file, update_status, insert_tasks, init_date, call_query_sql
 import copy
 import concurrent.futures
 import json 
@@ -130,14 +130,8 @@ def Clickup_Comment_Sales():
 
     @task
     def call_procedure() -> None:
-        hook = mssql.MsSqlHook(HOOK_MSSQL)
-        sql_conn = hook.get_conn()
-        cursor = sql_conn.cursor()
-       
-        sql = f"exec [dbo].[sp_Update_tasks_merge_email_sales_v1];"
-        cursor.execute(sql)
-        sql_conn.commit()
-        sql_conn.close()
+        query = "exec [dbo].[sp_Update_tasks_merge_email_sales_v1];"
+        call_query_sql(hook_mssql=HOOK_MSSQL, query=query)
 
     def post_comment(df_row):
         task_id = df_row["orginal_id"]
@@ -148,11 +142,41 @@ def Clickup_Comment_Sales():
             "group_assignee": None,
             "notify_all": True
         }
+        sql = f"""
+            update {TABLE_NAME_TASKS}
+            set status_nikko = 'yes'
+            where orginal_id = '{task_id}'
+        """
         headers['Content-Type'] = 'application/json'
         response_comment = requests.post(url_comment, headers=headers, json=body)
 
         if response_comment.status_code == 200:
-            update_clickup_task_gmail(task_id=task_id, hook_mssql=HOOK_MSSQL, table_name=TABLE_NAME_TASKS)
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
+            print('COMMENT: Comment added successfully.')
+        else:
+            print(f'COMMENT: Failed {response_comment.status_code} to add comment: {response_comment.json()} on task: {task_id}')
+
+    def post_comment_v1(df_row):
+        task_id = df_row["new_orginal_id"]
+        url_comment = CLICKUP_COMMENT.format(task_id)
+        body = {
+            "comment_text": df_row["text_content"],
+            "assignee": None,
+            "group_assignee": None,
+            "notify_all": True
+        }
+        sql = f"""
+            update {TABLE_NAME_TASKS}
+            set status_nikko = 'yes'
+            where new_orginal_id = '{task_id}'
+        """
+        headers['Content-Type'] = 'application/json'
+        response_comment = requests.post(url_comment, headers=headers, json=body)
+
+        if response_comment.status_code == 200:
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
             print('COMMENT: Comment added successfully.')
         else:
             print(f'COMMENT: Failed {response_comment.status_code} to add comment: {response_comment.json()} on task: {task_id}')
@@ -168,34 +192,27 @@ def Clickup_Comment_Sales():
             if field["id"] == "f382f1c5-41a7-4222-9787-ec83cd4ad7cc": #"created by"
                 field["value"] = df_row['created_by'] if df_row['created_by'] else None
         return json.loads(json.dumps(body, ensure_ascii=False))
-    
-    def update_new_orginal_id(task_id: str, orginal_id: str):
-        hook = mssql.MsSqlHook(HOOK_MSSQL)
-        sql_conn = hook.get_conn()
-        cursor = sql_conn.cursor()
-        sql_update = f"""
-                update {TABLE_NAME_TASKS}
-                set new_orginal_id = '{task_id}'
-                where orginal_id = '{orginal_id}' and is_newtask is not null
-                """
-        print(sql_update)
-        cursor.execute(sql_update)
-        sql_conn.commit()
-        print(f"updated status clickup on table name '{TABLE_NAME_TASKS}' with task_id '{task_id}' successfully")
-        sql_conn.close()
 
     def create_task(df_row):
         main_task_payload = create_task_payload(df_row)
         res = requests.post(CLICKUP_CREATE_TASK.format(LIST_ID_TASK_DESTINATION), json=main_task_payload, headers=headers)
         if res.status_code == 200:
             task_id = res.json()['id']
+            orginal_id=df_row['orginal_id']
+            sql_update = f"""
+                update {TABLE_NAME_TASKS}
+                set new_orginal_id = '{task_id}'
+                where orginal_id = '{orginal_id}' and is_newtask is not null
+            """
             print(f"Created parent task: {task_id}")
-            update_new_orginal_id(task_id=task_id, orginal_id=df_row['orginal_id'])
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql_update)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql_update)
+            update_status(task_id=df_row['id'], hook_mssql=HOOK_MSSQL, table_name=TABLE_NAME_TASKS)
         else:
             print("create task fail: ", res.status_code)
     
     def post_file(df_row):
-        task_id = df_row["orginal_id"]
+        task_id = df_row["task_id"]
         if len(task_id) < 1: 
             print("Not found task parent")
             return
@@ -213,7 +230,15 @@ def Clickup_Comment_Sales():
             }
             response_upload = requests.post(url_upload, headers=headers, data=m)
         file_name = local_path.split('/')[-1]
+        id_ = df_row["id"]
         if response_upload.status_code == 200:
+            sql = f"""
+                    update {TABLE_NAME_TASKS}
+                    set status_attachment = 'yes'
+                    where id = '{id_}'
+            """
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
             print(f'ATTACHMENT: Upload file {file_name} uploaded successfully.')
         else:
             print(f'ATTACHMENT: Failed {response_upload.status_code} with file name {file_name} error: {response_upload.json()}')
@@ -225,7 +250,7 @@ def Clickup_Comment_Sales():
         sql = f"""
             select id, name, description, orginal_id, is_newtask, new_orginal_id,
                 case when description <> '' and substring(description, 0, 30) like '%@%' then replace((SUBSTRING(description, 1, CHARINDEX(CHAR(10) , description) - 1)),' ','') else '' end created_by 
-            from {TABLE_NAME_TASKS} where is_newtask = 'Y'
+            from {TABLE_NAME_TASKS} where is_newtask = 'Y' and status_nikko = 'no'
         """
         print("SQL: ", sql)
         df = pd.read_sql(sql, sql_conn)
@@ -255,12 +280,12 @@ def Clickup_Comment_Sales():
         sql_conn = hook.get_conn()
         sql = """select *
                 from [dbo].[vw_Clickup_Comment_By_Sales_v1]
-                order by orginal_id, order_nikko; 
+                order by new_orginal_id, order_nikko; 
         """
         df = pd.read_sql(sql, sql_conn)
         sql_conn.close()
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(post_comment, [
+            executor.map(post_comment_v1, [
                          row for _, row in df.iterrows()])
     
     @task
@@ -269,7 +294,7 @@ def Clickup_Comment_Sales():
         sql_conn = hook.get_conn()
         sql = """select *
                 from [vw_Clickup_Attachment_By_Sales]
-                order by orginal_id, order_nikko; 
+                order by task_id, order_nikko; 
         """
         df = pd.read_sql(sql, sql_conn)
         sql_conn.close()

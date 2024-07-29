@@ -4,12 +4,13 @@ import airflow.providers.microsoft.mssql.hooks.mssql as mssql
 import pandas as pd
 import requests
 from datetime import datetime
+from typing import Dict
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.python import task
 from airflow.utils.dates import days_ago
 from common.utils import call_api_mutiple_pages, call_multiple_thread
-from common.utils_nikko import insert_tasks, insert_task_details, update_status, init_date
+from common.utils_nikko import insert_tasks, insert_task_details, update_status, init_date, call_query_sql
 import copy
 import concurrent.futures
 
@@ -70,7 +71,7 @@ BODY_TEMPLATE = {
     schedule_interval="*/5 * * * *",
     start_date=days_ago(1),
     catchup=False,
-    tags=["Clickup Email", "Clickup sales"],
+    tags=["Clickup Email", "Clickup purchase"],
     max_active_runs=1,
 )
 def Nikko_Clickup_Merge_Email_Purchase():
@@ -123,14 +124,8 @@ def Nikko_Clickup_Merge_Email_Purchase():
 
     @task
     def call_procedure() -> None:
-        hook = mssql.MsSqlHook(HOOK_MSSQL)
-        sql_conn = hook.get_conn()
-        cursor = sql_conn.cursor()
-       
-        sql = f"exec [dbo].[sp_Update_tasks_merge_email_purchase];"
-        cursor.execute(sql)
-        sql_conn.commit()
-        sql_conn.close()
+        query = "exec [dbo].[sp_Update_tasks_merge_email_purchase];"
+        call_query_sql(hook_mssql=HOOK_MSSQL, query=query)
     
     def create_task_payload(df_row):
         body = copy.deepcopy(BODY_TEMPLATE)
@@ -139,7 +134,6 @@ def Nikko_Clickup_Merge_Email_Purchase():
         body['status'] = CLICKUP_STATUS
         body["description"] = df_row["description"]
         return json.loads(json.dumps(body, ensure_ascii=False))
-    
     
     def create_task(df_row):
         main_task_payload = create_task_payload(df_row)

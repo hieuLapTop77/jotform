@@ -2,14 +2,17 @@ import os
 import airflow.providers.microsoft.mssql.hooks.mssql as mssql
 import pandas as pd
 import requests
+from datetime import datetime
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.python import task
 from airflow.utils.dates import days_ago
 from common.utils import call_api_mutiple_pages, call_multiple_thread
-from common.utils_nikko import download_single_file, update_clickup_task_gmail, insert_tasks, init_date
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+from common.utils_nikko import download_single_file, update_status, insert_tasks, init_date, call_query_sql
+import copy
 import concurrent.futures
+import json 
 
 # Variables
 LIST_ID_TASK_DESTINATION = 901802621445
@@ -22,6 +25,7 @@ CLICKUP_GET_TASKS = Variable.get("clickup_get_tasks")
 CLICKUP_ATTACHMENT = Variable.get("clickup_attachment")
 CLICKUP_COMMENT = Variable.get("clickup_comment")
 CLICKUP_STATUS = Variable.get("status_clickup_purchase")
+CLICKUP_CREATE_TASK = Variable.get("clickup_create_task")
 
 # Local path
 TEMP_PATH = Variable.get("temp_path")
@@ -51,21 +55,45 @@ def Clickup_Comment_Purchase():
             "Authorization": f"{API_TOKEN_NIKO}",
             "Content-Type": "application/json",
         }
+    BODY_TEMPLATE = {
+        "name": "",
+        "text_content": "",
+        "description": "",
+        "status": None,
+        "date_created": "",
+        "date_updated": None,
+        "date_closed": None,
+        "date_done": None,
+        "archived": False,
+        "assignees": [],
+        "group_assignees": [],
+        "checklists": [],
+        "tags": [],
+        "parent": None,
+        "priority": None,
+        "due_date": None,
+        "start_date": None,
+        "points": None,
+        "time_estimate": None,
+        "time_spent": 0,
+        "custom_fields": [],
+        "attachments": [],
+    }
     ######################################### API ################################################
 
     def call_api_get_tasks(space_id):
         date = init_date()
         params = {
             "page": 0, 
-            "include_closed": "true",
-            "statuses[]": "open"
+            # "include_closed": "true",
+            # "statuses[]": "open"
             # "date_created_gt": date["date_from"],
             # "date_created_lt": date["date_to"],
             # "date_updated_gt": date["date_from"],
             # "date_updated_lt": date["date_to"]
         }
         id_ = int(space_id)
-        params["statuses[]"] = CLICKUP_STATUS
+        # params["statuses[]"] = CLICKUP_STATUS
         name_url = 'CLICKUP_GET_TASKS'
         return call_api_mutiple_pages(headers=headers,params=params, name_url=name_url,url=CLICKUP_GET_TASKS,task_id=id_)
     
@@ -95,19 +123,85 @@ def Clickup_Comment_Purchase():
     
     @task
     def call_procedure() -> None:
-        hook = mssql.MsSqlHook(HOOK_MSSQL)
-        sql_conn = hook.get_conn()
-        cursor = sql_conn.cursor()
-       
-        sql = f"exec [dbo].[sp_Update_tasks_merge_email_purchase_v1];"
-        cursor.execute(sql)
-        sql_conn.commit()
-        sql_conn.close()
-
+        query = "exec [dbo].[sp_Update_tasks_merge_email_purchase_v1];"
+        call_query_sql(hook_mssql=HOOK_MSSQL, query=query)
     
-    def post_single_file(df_row):
-        # post files
+    def post_comment(df_row):
         task_id = df_row["orginal_id"]
+        url_comment = CLICKUP_COMMENT.format(task_id)
+        body = {
+            "comment_text": df_row["text_content"],
+            "assignee": None,
+            "group_assignee": None,
+            "notify_all": True
+        }
+        sql = f"""
+            update {TABLE_NAME_TASKS}
+            set status_nikko = 'yes'
+            where orginal_id = '{task_id}'
+        """
+        headers['Content-Type'] = 'application/json'
+        response_comment = requests.post(url_comment, headers=headers, json=body)
+
+        if response_comment.status_code == 200:
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
+            print('COMMENT: Comment added successfully.')
+        else:
+            print(f'COMMENT: Failed {response_comment.status_code} to add comment: {response_comment.json()} on task: {task_id}')
+
+    def post_comment_v1(df_row):
+        task_id = df_row["new_orginal_id"]
+        url_comment = CLICKUP_COMMENT.format(task_id)
+        body = {
+            "comment_text": df_row["text_content"],
+            "assignee": None,
+            "group_assignee": None,
+            "notify_all": True
+        }
+        sql = f"""
+            update {TABLE_NAME_TASKS}
+            set status_nikko = 'yes'
+            where new_orginal_id = '{task_id}'
+        """
+        headers['Content-Type'] = 'application/json'
+        response_comment = requests.post(url_comment, headers=headers, json=body)
+
+        if response_comment.status_code == 200:
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
+            print('COMMENT: Comment added successfully.')
+        else:
+            print(f'COMMENT: Failed {response_comment.status_code} to add comment: {response_comment.json()} on task: {task_id}')
+    
+    def create_task_payload(df_row):
+        body = copy.deepcopy(BODY_TEMPLATE)
+        body['name'] = df_row['name']
+        body['date_created'] = int(datetime.now().timestamp() * 1000)
+        body['status'] = CLICKUP_STATUS
+        body["description"] = df_row["description"]
+        return json.loads(json.dumps(body, ensure_ascii=False))
+    
+    def create_task(df_row):
+        main_task_payload = create_task_payload(df_row)
+        res = requests.post(CLICKUP_CREATE_TASK.format(LIST_ID_TASK_DESTINATION), json=main_task_payload, headers=headers)
+        if res.status_code == 200:
+            task_id = res.json()['id']
+            orginal_id=df_row['orginal_id']
+            sql_update = f"""
+                update {TABLE_NAME_TASKS}
+                set new_orginal_id = '{task_id}'
+                where orginal_id = '{orginal_id}' and is_newtask is not null
+            """
+            print(f"Created parent task: {task_id}")
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql_update)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql_update)
+            update_status(task_id=df_row['id'], hook_mssql=HOOK_MSSQL, table_name=TABLE_NAME_TASKS)
+        else:
+            print("create task fail: ", res.status_code)
+    
+    def post_file(df_row):
+        task_id = df_row["task_id"]
         if len(task_id) < 1: 
             print("Not found task parent")
             return
@@ -124,28 +218,38 @@ def Clickup_Comment_Purchase():
                 'Content-Type': m.content_type
             }
             response_upload = requests.post(url_upload, headers=headers, data=m)
-
-        # post comment
         file_name = local_path.split('/')[-1]
+        id_ = df_row["id"]
         if response_upload.status_code == 200:
+            sql = f"""
+                    update {TABLE_NAME_TASKS}
+                    set status_attachment = 'yes'
+                    where id = '{id_}'
+            """
+            # update_status_task(task_id=task_id, hook_mssql=HOOK_MSSQL, sql=sql)
+            call_query_sql(hook_mssql=HOOK_MSSQL, query=sql)
             print(f'ATTACHMENT: Upload file {file_name} uploaded successfully.')
-            url_comment = CLICKUP_COMMENT.format(task_id)
-            body = {
-                "comment_text": df_row["text_content"],
-                "assignee": None,
-                "group_assignee": None,
-                "notify_all": True
-            }
-            headers['Content-Type'] = 'application/json'
-            response_comment = requests.post(url_comment, headers=headers, json=body)
-
-            if response_comment.status_code == 200:
-                update_clickup_task_gmail(task_id=task_id, hook_mssql=HOOK_MSSQL, table_name=TABLE_NAME_TASKS)
-                print('COMMENT: Comment added successfully.')
-            else:
-                print(f'COMMENT: Failed to add comment: {response_comment.status_code} on task: {task_id}')
         else:
-            print(f'ATTACHMENT: Failed {response_upload.status_code} to upload file: {file_name}')
+            print(f'ATTACHMENT: Failed {response_upload.status_code} with file name {file_name} error: {response_upload.json()}')
+    
+    @task
+    def create_task_by_child():
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        sql = f"""
+             select id, name, description
+                ,case when description <> '' 
+                    and substring(description, 0, 30) like '%@%'  
+                    and  CHARINDEX(CHAR(10), description) > 0
+                then replace((SUBSTRING(description, 1, CHARINDEX(CHAR(10) , description) - 1)),' ','') else '' end created_by 
+            from {TABLE_NAME_TASKS} where order_nikko = 'Y' and status_nikko = 'no';
+           """
+        print("SQL: ", sql)
+        df = pd.read_sql(sql, sql_conn)
+        sql_conn.close()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(create_task, [
+                         row for _, row in df.iterrows()])
 
     @task
     def create_comment_clickup():
@@ -158,7 +262,35 @@ def Clickup_Comment_Purchase():
         df = pd.read_sql(sql, sql_conn)
         sql_conn.close()
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(post_single_file, [
+            executor.map(post_comment, [
+                         row for _, row in df.iterrows()])
+
+    @task        
+    def create_comment_clickup_v1():
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        sql = """select *
+                from [dbo].[vw_Clickup_Comment_By_Purchase_v1] 
+                order by orginal_id, order_nikko; 
+        """
+        df = pd.read_sql(sql, sql_conn)
+        sql_conn.close()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(post_comment_v1, [
+                         row for _, row in df.iterrows()])
+        
+    @task
+    def post_attachment():
+        hook = mssql.MsSqlHook(HOOK_MSSQL)
+        sql_conn = hook.get_conn()
+        sql = """select *
+                from [vw_Clickup_Attachment_By_Purchase]
+                order by task_id, order_nikko; 
+        """
+        df = pd.read_sql(sql, sql_conn)
+        sql_conn.close()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(post_file, [
                          row for _, row in df.iterrows()])
 
     ############ DAG FLOW ############
@@ -166,9 +298,12 @@ def Clickup_Comment_Purchase():
     list_tasks = call_mutiple_process_tasks_by_list()
     insert_tasks_task = insert_tasks_sql(list_tasks)
     call_procedure_task = call_procedure()
+    create_task_child = create_task_by_child()
     create_comment_clickup_task = create_comment_clickup()
+    create_comment_clickup_task_v1 = create_comment_clickup_v1()
+    create_attachment_task = post_attachment()
     remove_files = empty_temp_dir()
-    check_temp_path_task >> list_tasks >> insert_tasks_task >> call_procedure_task >> create_comment_clickup_task >> remove_files
+    check_temp_path_task >> list_tasks >> insert_tasks_task >> call_procedure_task >> create_task_child >> create_comment_clickup_task >> create_comment_clickup_task_v1 >> create_attachment_task >> remove_files
     # create_comment_clickup()
 
 

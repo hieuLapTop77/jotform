@@ -10,7 +10,7 @@ from airflow.models import Variable
 from airflow.operators.python import task
 from airflow.utils.dates import days_ago
 from common.utils import call_api_mutiple_pages, call_multiple_thread
-from common.utils_nikko import insert_tasks, insert_task_details, update_status
+from common.utils_nikko import insert_tasks, insert_task_details, update_status, init_date, call_query_sql
 import copy
 import concurrent.futures
 
@@ -24,10 +24,7 @@ FOLDER_NAME = 'Clickup_sales_files/'
 # Clickup
 CLICKUP_GET_TASKS = Variable.get("clickup_get_tasks")
 CLICKUP_GET_TASKS_DETAILS = Variable.get("clickup_get_task_details")
-CLICKUP_GET_CUSTOM_FIELDS = Variable.get("clickup_get_custom_fields")
-CLICKUP_DELETE_TASK = Variable.get("clickup_delete_task")
 CLICKUP_CREATE_TASK = Variable.get("clickup_create_task")
-CLICKUP_ATTACHMENT = Variable.get("clickup_attachment")
 CLICKUP_STATUS = Variable.get("status_clickup_sales")
 
 # Local path
@@ -79,7 +76,7 @@ BODY_TEMPLATE = {
     schedule_interval="*/5 * * * *",
     start_date=days_ago(1),
     catchup=False,
-    tags=["Clickup Gmail"],
+    tags=["Clickup Email", " Clickup Sales"],
     max_active_runs=1,
 )
 def Nikko_Clickup_Merge_Email_Sales():
@@ -88,13 +85,6 @@ def Nikko_Clickup_Merge_Email_Sales():
             "Content-Type": "application/json",
         }
     ######################################### API ################################################
-
-    def init_date() -> Dict[str, str]:
-        current_time = datetime.now()
-        date_to = int(current_time.timestamp()*1000)
-        time_minus_24_hours = current_time - timedelta(hours=24)
-        date_from = int(time_minus_24_hours.timestamp() * 1000)
-        return {"date_from": date_from, "date_to": date_to}
 
     def call_api_get_tasks(space_id):
         date = init_date()
@@ -139,14 +129,8 @@ def Nikko_Clickup_Merge_Email_Sales():
 
     @task
     def call_procedure() -> None:
-        hook = mssql.MsSqlHook(HOOK_MSSQL)
-        sql_conn = hook.get_conn()
-        cursor = sql_conn.cursor()
-       
-        sql = f"exec [dbo].[sp_Update_tasks_merge_email_sales];"
-        cursor.execute(sql)
-        sql_conn.commit()
-        sql_conn.close()
+        query = "exec [dbo].[sp_Update_tasks_merge_email_sales];"
+        call_query_sql(hook_mssql=HOOK_MSSQL, query=query)
     
     def create_task_payload(df_row):
         body = copy.deepcopy(BODY_TEMPLATE)

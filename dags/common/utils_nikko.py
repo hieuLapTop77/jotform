@@ -305,20 +305,16 @@ def update_status(task_id: str, hook_mssql:str, table_name: str):
     print(f"updated status clickup on table name '{table_name}' with task_id '{task_id}' successfully")
     sql_conn.close()
 
-def update_clickup_task_gmail(task_id: str, hook_mssql:str, table_name: str):
+def call_query_sql(hook_mssql:str, query: str):
     hook = mssql.MsSqlHook(hook_mssql)
     sql_conn = hook.get_conn()
     cursor = sql_conn.cursor()
-    sql_update = f"""
-            update {table_name}
-            set status_nikko = 'yes', status_attachment = 'yes'
-            where orginal_id = '{task_id}'
-            """
-    print(sql_update)
-    cursor.execute(sql_update)
+    print(query)
+    cursor.execute(query)
     sql_conn.commit()
-    print(f"updated status clickup on table name '{table_name}' with task_id '{task_id}' successfully")
+    print("--------------------------Run query successfully-----------------------")
     sql_conn.close()
+
 
 def download_single_file(url_download: str, temp_path: str, folder_name: str) -> str:
     file_name = url_download.split('/')[-1]
